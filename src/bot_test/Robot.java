@@ -1,7 +1,6 @@
-package botX;
+package bot_test;
 
 import battlecode.common.*;
-
 import java.util.*;
 
 abstract class Robot {
@@ -12,8 +11,8 @@ abstract class Robot {
     static Team myTeam;
     static Team enemy;
 
-    public static void init(RobotController rc) throws GameActionException {
-        Robot.robotController = rc;
+    public static void init(RobotController robotController) throws GameActionException {
+        Robot.robotController = robotController;
         random = new Random();
         robotType = robotController.getType();
         spawnLocation = robotController.getLocation();
@@ -24,6 +23,7 @@ abstract class Robot {
     protected static Direction randomDirection() {
         return new Direction(random.nextFloat() * 2 * (float)Math.PI);
     }
+
     /**
      * Attempts to move in a given direction, while avoiding small obstacles directly in the path.
      *
