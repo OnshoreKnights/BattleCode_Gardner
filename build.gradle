@@ -220,7 +220,7 @@ configurations.all {
 buildscript {
     ext.versions = [
         battlecode: '2017.+',
-        kotlin: '1.0.6',
+        kotlin: '1.1.2-4',
         scala: '2.11.7'
     ]
 

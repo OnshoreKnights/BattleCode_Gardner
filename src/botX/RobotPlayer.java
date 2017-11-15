@@ -2,6 +2,9 @@ package botX;
 
 import battlecode.common.*;
 
+import static botX.Robot.randomDirection;
+import static botX.Robot.tryMove;
+
 public strictfp class RobotPlayer {
     static RobotController rc;
 
@@ -23,22 +26,23 @@ public strictfp class RobotPlayer {
                 case GARDENER:
                     robot = new Gardener();
                     break;
+                case SOLDIER:
+                    robot = new Soldier();
+                    break;
             }
         } catch (Exception e) {
             System.out.println("Exception in " + rc.getType());
             e.printStackTrace();
         }
+
         while (true) {
             try {
                 while (true) {
                     robot.onUpdate();
                 }
-
             } catch (Exception e) {
                 System.out.println("Exception in " + rc.getType());
-                e.printStackTrace();
             }
         }
     }
-
 }

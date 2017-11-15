@@ -6,14 +6,18 @@ class Gardener extends Robot {
 
     public void onUpdate() {
         boolean settled = false;
-        Direction gardnerDir = null;
+        Direction gardenerDir = null;
 
         while (true) {
             try {
 
+                int xPos = robotController.readBroadcast(0);
+                int yPos = robotController.readBroadcast(1);
+                MapLocation archonLocation = new MapLocation(xPos, yPos);
+
                 Direction dir = randomDirection();
-                if (gardnerDir == null) {
-                    gardnerDir = dir;
+                if (gardenerDir == null) {
+                    gardenerDir = dir;
                 }
                 if (!(robotController.isCircleOccupiedExceptByThisRobot(robotController.getLocation(), robotController.getType().bodyRadius * 4.0f))) {
                     settled = true;
@@ -25,6 +29,10 @@ class Gardener extends Robot {
                     if (robotController.canPlantTree(dir)) {
                         robotController.plantTree(dir);
                     }
+                }
+
+                if (robotController.canBuildRobot(RobotType.SOLDIER, dir)) {
+                    robotController.buildRobot(RobotType.SOLDIER, dir);
                 }
 
                 TreeInfo[] trees = robotController.senseNearbyTrees(robotController.getType().bodyRadius * 2, robotController.getTeam());
@@ -41,11 +49,11 @@ class Gardener extends Robot {
                 }
 
                 if (!settled) {
-                    if (tryMove(gardnerDir)) {
+                    if (tryMove(gardenerDir)) {
                         System.out.println("moved");
                     } else {
-                        gardnerDir = randomDirection();
-                        tryMove(gardnerDir);
+                        gardenerDir = randomDirection();
+                        tryMove(gardenerDir);
                     }
                 }
 
