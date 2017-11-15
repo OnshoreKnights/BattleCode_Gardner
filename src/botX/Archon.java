@@ -22,6 +22,11 @@ public class Archon extends Robot {
                     robotController.donate(robotController.getTeamBullets() - 1000);
                 }
                 tryMove(dir);
+
+                MapLocation myLocation = robotController.getLocation();
+                robotController.broadcast(0, (int) myLocation.x);
+                robotController.broadcast(1, (int) myLocation.y);
+
                 Clock.yield();
 
             } catch (Exception e) {
