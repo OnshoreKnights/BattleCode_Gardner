@@ -108,5 +108,15 @@ abstract class Robot {
 
         return (perpendicularDist <= robotController.getType().bodyRadius);
     }
+
+    public static boolean isAwayFromMapEdge(MapLocation location, float distance) throws GameActionException {
+        for(int i = 0; i < 4; i++) {
+            MapLocation testLocation = location.add(1.5708f * i, distance);
+            if(!robotController.onTheMap(testLocation)) {
+                return false;
+            }
+        }
+        return true;
+    }
     abstract void onUpdate() throws GameActionException;
 }

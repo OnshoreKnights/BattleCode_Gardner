@@ -34,19 +34,34 @@ class Gardener extends Robot {
     }
 
     public void trySettle() throws GameActionException {
-        //TODO add check that it's at least 4 away from archon to leave room for travel.  maybe 5 to be safe
         MapLocation tempLocation = robotController.getLocation();
-        if (!(robotController.isCircleOccupiedExceptByThisRobot(tempLocation, 2.0f))) {
-            settled = true;
-            location = tempLocation;
+
+        //Leave enough room from the edge of the map to build trees all around it
+        if(!isAwayFromMapEdge(tempLocation,3)) {
+            return;
         }
+
+        //Do not build too close to own trees.  Ignore neutral trees, they'll likely be destroyed soon.
+        if(robotController.senseNearbyTrees(2, myTeam).length > 0) {
+            return;
+        }
+
+        //Ignore other bots.  Don't build too close to other gardeners or the Archon
+        for (RobotInfo robot: robotController.senseNearbyRobots(5, myTeam)) {
+            if(robot.type == RobotType.GARDENER || robot.type == RobotType.ARCHON) {
+                return;
+            }
+        }
+
+        settled = true;
+        location = tempLocation;
     }
 
     public void tryPlantingTrees() throws GameActionException {
         for(int i = 0; i < maxTrees; i++) {
-            Direction direction = new Direction(i * 60f);
+            Direction direction = new Direction(i * 1.0472f);
 
-            if (!robotController.isCircleOccupied(location.add(direction, 2), 1f)) {
+            if (robotController.canPlantTree(direction)) {
                 robotController.plantTree(direction);
                 return;
             }
@@ -70,7 +85,7 @@ class Gardener extends Robot {
     }
 
     public void tryBuildSoldier() throws GameActionException {
-        Direction direction = new Direction(300f);
+        Direction direction = new Direction(5.236f);
         if (soldierCount < maxSoldiers && robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
             robotController.buildRobot(RobotType.SOLDIER, direction);
             soldierCount++;
