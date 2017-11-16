@@ -5,8 +5,6 @@ import battlecode.common.*;
 class Gardener extends Robot {
     private boolean settled = false;
     private int maxTrees = 5;   //Leave room for making robots. Change to 4 if tanks are involved (radius 2)
-    private int soldierCount = 0;
-    private int maxSoldiers = 1;    //TODO change to global count that keeps track of living soldiers
     private MapLocation location;
 
     //TODO remove settling once I can figure out how to lay them out in a grid pattern (2 spaces between)
@@ -36,13 +34,13 @@ class Gardener extends Robot {
         }
     }
 
-    //Add self to gardener count, then broadcast it to the archon
+    //Add self to unsettled gardener count, then broadcast it to the archon
     public void broadcastUnsettled() throws GameActionException {
         int currentGardenerCount = robotController.readBroadcastInt(0);
         robotController.broadcastInt(0,currentGardenerCount + 1);
     }
 
-    //Add self to gardener count, then broadcast it to the archon
+    //Add self to settled gardener count, then broadcast it to the archon
     public void broadcastSettled() throws GameActionException {
         int currentGardenerCount = robotController.readBroadcastInt(1);
         robotController.broadcastInt(1,currentGardenerCount + 1);
@@ -102,10 +100,16 @@ class Gardener extends Robot {
     //TODO split between different soldier types
     // Guards and Hunters
     public void tryBuildSoldier() throws GameActionException {
+        int soldiersToHire = robotController.readBroadcastInt(3);
+        if(soldiersToHire == 0) {
+            return;
+        }
+
+        //Build in the direction of the intentional opening
         Direction direction = new Direction(5.236f);
-        if (soldierCount < maxSoldiers && robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
+        if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
             robotController.buildRobot(RobotType.SOLDIER, direction);
-            soldierCount++;
+            robotController.broadcastInt(3, soldiersToHire - 1);
         }
     }
 }

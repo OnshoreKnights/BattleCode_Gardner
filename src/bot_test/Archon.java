@@ -7,6 +7,7 @@ import java.util.ArrayList;
 public class Archon extends Robot {
     int maxGardeners = 15;
     int maxUnsettledGardeners = 3;
+    int maxSoldiers = 5;
 
     @Override
     //TODO Archon should do the majority of the processing and planning.
@@ -20,7 +21,9 @@ public class Archon extends Robot {
                 checkDonateWin();
 
                 tryHireGardener();
+                setSoldiersToHireCount();
 
+                //wiggle about randomly, mostly to avoid bullets.
                 Direction direction = randomDirection();
                 tryMove(direction);
 
@@ -50,12 +53,21 @@ public class Archon extends Robot {
             return;
         }
 
-        for(int i = 0; i < 6; i++) {
-            Direction direction = new Direction(i * 1.0472f);
+        //Try 8 cardinal directions for building a gardener.
+        //Hex based not required due to typically being in open ground
+        for(int i = 0; i < 8; i++) {
+            Direction direction = new Direction(i * 0.785398f);
             if (robotController.canHireGardener(direction)) {
                 robotController.hireGardener(direction);
                 break;
             }
+        }
+    }
+
+    private void setSoldiersToHireCount() throws GameActionException {
+        int soldierCount = robotController.readBroadcastInt(2);
+        if(soldierCount < maxSoldiers) {
+            robotController.broadcastInt(3, maxSoldiers - soldierCount);
         }
     }
 
@@ -69,8 +81,11 @@ public class Archon extends Robot {
         }
     }
 
+    //TODO change "magic numbers" to a broadcast channel enum
     public void resetBroadcasts() throws GameActionException  {
-        robotController.broadcastInt(0,0);
-        robotController.broadcastInt(1,1);
+        robotController.broadcastInt(0,0); //unsettled gardeners
+        robotController.broadcastInt(1,0); //settled gardeners
+        robotController.broadcastInt(2,0); //soldier count
+        //do not reset soldiersToHire count      //soldiers to hire
     }
 }

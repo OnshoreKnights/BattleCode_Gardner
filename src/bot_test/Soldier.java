@@ -16,12 +16,19 @@ public class Soldier extends Robot {
 
                 tryAttack();
 
+                broadcastAlive();
+
                 Clock.yield();
             } catch (Exception e) {
                 System.out.println("A Soldier Exception");
                 e.printStackTrace();
             }
         }
+    }
+
+    private void broadcastAlive() throws GameActionException {
+        int currentSoldierCount = robotController.readBroadcastInt(2);
+        robotController.broadcastInt(2,currentSoldierCount + 1);
     }
 
     private void tryAttack() throws GameActionException {
