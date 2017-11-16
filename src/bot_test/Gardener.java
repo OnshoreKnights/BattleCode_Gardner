@@ -19,7 +19,10 @@ class Gardener extends Robot {
                     trySettle();
                 }
 
-                if(settled) {
+                if(!settled) {
+                    broadcastUnsettled();
+                }else {
+                    broadcastSettled();
                     tryPlantingTrees();
                     tryBuildSoldier();
                 }
@@ -31,6 +34,18 @@ class Gardener extends Robot {
                 e.printStackTrace();
             }
         }
+    }
+
+    //Add self to gardener count, then broadcast it to the archon
+    public void broadcastUnsettled() throws GameActionException {
+        int currentGardenerCount = robotController.readBroadcastInt(0);
+        robotController.broadcastInt(0,currentGardenerCount + 1);
+    }
+
+    //Add self to gardener count, then broadcast it to the archon
+    public void broadcastSettled() throws GameActionException {
+        int currentGardenerCount = robotController.readBroadcastInt(1);
+        robotController.broadcastInt(1,currentGardenerCount + 1);
     }
 
     public void trySettle() throws GameActionException {

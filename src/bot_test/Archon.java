@@ -2,9 +2,11 @@ package bot_test;
 
 import battlecode.common.*;
 
+import java.util.ArrayList;
+
 public class Archon extends Robot {
-    int gardenerCount = 0;
     int maxGardeners = 15;
+    int maxUnsettledGardeners = 3;
 
     @Override
     //TODO Archon should do the majority of the processing and planning.
@@ -17,11 +19,12 @@ public class Archon extends Robot {
             try {
                 checkDonateWin();
 
+                tryHireGardener();
+
                 Direction direction = randomDirection();
-
-                tryHireGardener(direction);
-
                 tryMove(direction);
+
+                resetBroadcasts();
                 Clock.yield();
 
             } catch (Exception e) {
@@ -35,18 +38,24 @@ public class Archon extends Robot {
     // Farmers = 6 trees surrounding.  Unless I change to a more mobile format.  Place in back, tightly clustered
     // Hybrids = 4 trees and two open slots for soliders, tanks, etc.  Middle placement, leaving room for tanks to move.
     // Factories = aggressively placed gardeners that just spawn other troops.  Place behind trees, or plant one tree in front of them.
-    public void tryHireGardener(Direction direction) throws GameActionException {
-        gardenerCount = 0;
-        for (RobotInfo robot: robotController.senseNearbyRobots(-1, myTeam))
-             if(robot.type == robotType.GARDENER) {
-            gardenerCount ++;
-        }
-        if(gardenerCount >= maxGardeners) {
+    public void tryHireGardener() throws GameActionException {
+        int unsettledGardenerCount = robotController.readBroadcastInt(0);
+        int settledGardenerCount = robotController.readBroadcastInt(1);
+
+        if(unsettledGardenerCount + settledGardenerCount >= maxGardeners) {
             return;
         }
 
-        if (robotController.canHireGardener(direction)) {
-            robotController.hireGardener(direction);
+        if(unsettledGardenerCount >= maxUnsettledGardeners) {
+            return;
+        }
+
+        for(int i = 0; i < 6; i++) {
+            Direction direction = new Direction(i * 1.0472f);
+            if (robotController.canHireGardener(direction)) {
+                robotController.hireGardener(direction);
+                break;
+            }
         }
     }
 
@@ -58,5 +67,10 @@ public class Archon extends Robot {
             System.out.println("Enough bullets saved for a point victory.  Donating " + robotController.getTeamBullets() + " bullets.");
             robotController.donate(robotController.getTeamBullets());
         }
+    }
+
+    public void resetBroadcasts() throws GameActionException  {
+        robotController.broadcastInt(0,0);
+        robotController.broadcastInt(1,1);
     }
 }
