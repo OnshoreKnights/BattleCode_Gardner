@@ -84,6 +84,8 @@ class Gardener extends Robot {
         }
     }
 
+    //TODO split between different soldier types
+    // Guards and Hunters
     public void tryBuildSoldier() throws GameActionException {
         Direction direction = new Direction(5.236f);
         if (soldierCount < maxSoldiers && robotController.canBuildRobot(RobotType.SOLDIER, direction)) {

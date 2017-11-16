@@ -7,6 +7,11 @@ public class Archon extends Robot {
     int maxGardeners = 15;
 
     @Override
+    //TODO Archon should do the majority of the processing and planning.
+    //  Sort out where gardeners should be placed, and give them a destination to move towards.
+    //  Do a circular check the same way that gardeners plant trees.  Concentric circles around the archon's
+    //  original starting position.  With a buffer for the Archon to wiggle about to avoid bullets.
+    //  Should read transmissions and use the info to coordinate soldiers
     public void onUpdate() {
         while (true) {
             try {
@@ -26,13 +31,22 @@ public class Archon extends Robot {
         }
     }
 
-    //TODO place gardeners at 39 degree angles from each other if possible.  9 open spaces
+    //TODO Split between different gardener types.
+    // Farmers = 6 trees surrounding.  Unless I change to a more mobile format.  Place in back, tightly clustered
+    // Hybrids = 4 trees and two open slots for soliders, tanks, etc.  Middle placement, leaving room for tanks to move.
+    // Factories = aggressively placed gardeners that just spawn other troops.  Place behind trees, or plant one tree in front of them.
     public void tryHireGardener(Direction direction) throws GameActionException {
-        if (robotController.canHireGardener(direction) && gardenerCount < maxGardeners) {
-            robotController.hireGardener(direction);
-            gardenerCount++;
+        gardenerCount = 0;
+        for (RobotInfo robot: robotController.senseNearbyRobots(-1, myTeam))
+             if(robot.type == robotType.GARDENER) {
+            gardenerCount ++;
+        }
+        if(gardenerCount >= maxGardeners) {
+            return;
+        }
 
-            System.out.println("New gardener hired. " + gardenerCount + " / " + maxGardeners);
+        if (robotController.canHireGardener(direction)) {
+            robotController.hireGardener(direction);
         }
     }
 
