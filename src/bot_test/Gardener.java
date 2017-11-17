@@ -7,8 +7,6 @@ class Gardener extends Robot {
     private int maxTrees = 5;   //Leave room for making robots. Change to 4 if tanks are involved (radius 2)
     private MapLocation location;
 
-    //TODO remove settling once I can figure out how to lay them out in a grid pattern (2 spaces between)
-    // or in rows with a break in the middle.
     public void onUpdate() {
         while (true) {
             try {
@@ -36,14 +34,14 @@ class Gardener extends Robot {
 
     //Add self to unsettled gardener count, then broadcast it to the archon
     public void broadcastUnsettled() throws GameActionException {
-        int currentGardenerCount = robotController.readBroadcastInt(0);
-        robotController.broadcastInt(0,currentGardenerCount + 1);
+        int currentGardenerCount = robotController.readBroadcastInt(BroadcastChannels.unsettledGardeners);
+        robotController.broadcastInt(BroadcastChannels.unsettledGardeners,currentGardenerCount + 1);
     }
 
     //Add self to settled gardener count, then broadcast it to the archon
     public void broadcastSettled() throws GameActionException {
-        int currentGardenerCount = robotController.readBroadcastInt(1);
-        robotController.broadcastInt(1,currentGardenerCount + 1);
+        int currentGardenerCount = robotController.readBroadcastInt(BroadcastChannels.settledGardeners);
+        robotController.broadcastInt(BroadcastChannels.settledGardeners,currentGardenerCount + 1);
     }
 
     public void trySettle() throws GameActionException {
@@ -68,6 +66,7 @@ class Gardener extends Robot {
 
         settled = true;
         location = tempLocation;
+        System.out.println("Gardener settled");
     }
 
     public void tryPlantingTrees() throws GameActionException {
@@ -100,7 +99,7 @@ class Gardener extends Robot {
     //TODO split between different soldier types
     // Guards and Hunters
     public void tryBuildSoldier() throws GameActionException {
-        int soldiersToHire = robotController.readBroadcastInt(3);
+        int soldiersToHire = robotController.readBroadcastInt(BroadcastChannels.soldiersToHire);
         if(soldiersToHire == 0) {
             return;
         }
@@ -109,7 +108,8 @@ class Gardener extends Robot {
         Direction direction = new Direction(5.236f);
         if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
             robotController.buildRobot(RobotType.SOLDIER, direction);
-            robotController.broadcastInt(3, soldiersToHire - 1);
+            robotController.broadcastInt(BroadcastChannels.soldiersToHire, soldiersToHire - 1);
+            System.out.println("Soldier created");
         }
     }
 }
