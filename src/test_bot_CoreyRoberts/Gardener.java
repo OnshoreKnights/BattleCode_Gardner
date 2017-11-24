@@ -1,28 +1,52 @@
-package bot_test;
+package test_bot_CoreyRoberts;
 
 import battlecode.common.*;
+import test_bot_CoreyRoberts.Components.*;
 
+
+//TODO change type of gardener based on how many I have and how many of each I need.
+// Farmers = 6 trees surrounding.  Unless I change to a more mobile format.  Place in back, tightly clustered
+// Hybrids = 4 trees and two open slots for soldiers, tanks, etc.  Middle placement, leaving room for tanks to move.
+// Factories = aggressively placed gardeners that just spawn other troops.  Place behind trees, or plant one tree in front of them.
+//TODO build one scout IMMEDIATELY to get a head start on collecting bullets. Then build trees.  Then more robots.
 class Gardener extends Robot {
-    private boolean settled = false;
-    private int maxTrees = 5;   //Leave room for making robots. Change to 4 if tanks are involved (radius 2)
-    private MapLocation location;
+    private boolean settled;
+    private int maxTrees;
 
+    private BroadcastAntenna broadcastAntenna;
+    private SensorArray sensorArray;
+    private NavigationSystem  navigationSystem;
+    private MapLocation currentLocation;
+
+    public Gardener() {
+        settled = false;
+        maxTrees = 4;
+
+        broadcastAntenna = new BroadcastAntenna(robotController);
+        sensorArray = new SensorArray(robotController);
+        navigationSystem = new NavigationSystem(robotController); //Add SensorArray?
+    }
     public void onUpdate() {
         while (true) {
             try {
+                currentLocation = robotController.getLocation();
+                sensorArray.reset();
+
                 if (!settled) {
-                    tryMove(randomDirection());
+                    navigationSystem.tryMove(randomDirection());
                     trySettle();
                 }
 
                 if(!settled) {
-                    broadcastUnsettled();
+                    broadcastAntenna.incrementUnsettledGardeners();
                 }else {
-                    broadcastSettled();
+                    broadcastAntenna.incrementSettledGardeners();
                     tryPlantingTrees();
+                    tryBuildScout();
                     tryBuildSoldier();
                 }
                 tryWateringTrees();
+                tryShakeTree();
 
                 Clock.yield();
             } catch (Exception e) {
@@ -32,23 +56,9 @@ class Gardener extends Robot {
         }
     }
 
-    //Add self to unsettled gardener count, then broadcast it to the archon
-    public void broadcastUnsettled() throws GameActionException {
-        int currentGardenerCount = robotController.readBroadcastInt(BroadcastChannels.unsettledGardeners);
-        robotController.broadcastInt(BroadcastChannels.unsettledGardeners,currentGardenerCount + 1);
-    }
-
-    //Add self to settled gardener count, then broadcast it to the archon
-    public void broadcastSettled() throws GameActionException {
-        int currentGardenerCount = robotController.readBroadcastInt(BroadcastChannels.settledGardeners);
-        robotController.broadcastInt(BroadcastChannels.settledGardeners,currentGardenerCount + 1);
-    }
-
     public void trySettle() throws GameActionException {
-        MapLocation tempLocation = robotController.getLocation();
-
         //Leave enough room from the edge of the map to build trees all around it
-        if(!isAwayFromMapEdge(tempLocation,3)) {
+        if(!isAwayFromMapEdge(currentLocation,3)) {
             return;
         }
 
@@ -65,7 +75,6 @@ class Gardener extends Robot {
         }
 
         settled = true;
-        location = tempLocation;
         System.out.println("Gardener settled");
     }
 
@@ -96,10 +105,24 @@ class Gardener extends Robot {
         }
     }
 
+    private void tryBuildScout() throws GameActionException {
+        int scoutsToHire = robotController.readBroadcastInt(BroadcastAntenna.scoutsToHire);
+        if(scoutsToHire <= 0) {
+            return;
+        }
+
+        //Build in the direction of the intentional opening
+        Direction direction = new Direction(5.236f);
+        if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
+            robotController.buildRobot(RobotType.SCOUT, direction);
+            robotController.broadcastInt(BroadcastAntenna.scoutsToHire, scoutsToHire - 1);
+        }
+    }
+
     //TODO split between different soldier types
     // Guards and Hunters
     public void tryBuildSoldier() throws GameActionException {
-        int soldiersToHire = robotController.readBroadcastInt(BroadcastChannels.soldiersToHire);
+        int soldiersToHire = robotController.readBroadcastInt(BroadcastAntenna.soldiersToHire);
         if(soldiersToHire == 0) {
             return;
         }
@@ -108,7 +131,7 @@ class Gardener extends Robot {
         Direction direction = new Direction(5.236f);
         if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
             robotController.buildRobot(RobotType.SOLDIER, direction);
-            robotController.broadcastInt(BroadcastChannels.soldiersToHire, soldiersToHire - 1);
+            robotController.broadcastInt(BroadcastAntenna.soldiersToHire, soldiersToHire - 1); //TODO broadcastAntenna
             System.out.println("Soldier created");
         }
     }

@@ -1,4 +1,4 @@
-package bot_test;
+package test_bot_CoreyRoberts;
 
 import battlecode.common.*;
 
@@ -28,6 +28,10 @@ public strictfp class RobotPlayer {
                     break;
                 case SOLDIER:
                     robot = new Soldier();
+                    break;
+                case SCOUT:
+                    robot = new Scout();
+                    break;
             }
         } catch (Exception e) {
             System.out.println("Exception in robot initialization: " + robotController.getType());

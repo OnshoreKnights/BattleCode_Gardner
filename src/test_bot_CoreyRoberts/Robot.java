@@ -1,12 +1,14 @@
-package bot_test;
+package test_bot_CoreyRoberts;
 
 import battlecode.common.*;
+
 import java.util.*;
 
-abstract class Robot {
+public abstract class Robot {
     static RobotController robotController = null;
     static RobotType robotType = null;
     static MapLocation spawnLocation = null;
+    static MapLocation currentLocation = null;
     static Random random;
     static Team myTeam;
     static Team enemy;
@@ -16,6 +18,7 @@ abstract class Robot {
         random = new Random();
         robotType = robotController.getType();
         spawnLocation = robotController.getLocation();
+        currentLocation = spawnLocation;
         myTeam = robotController.getTeam();
         enemy = myTeam.opponent();
     }
@@ -24,57 +27,6 @@ abstract class Robot {
         return new Direction(random.nextFloat() * 2 * (float)Math.PI);
     }
 
-    /**
-     * Attempts to move in a given direction, while avoiding small obstacles directly in the path.
-     *
-     * @param dir The intended direction of movement
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir) throws GameActionException {
-        return tryMove(dir,20,3);
-    }
-
-    /**
-     * Attempts to move in a given direction, while avoiding small obstacles direction in the path.
-     *
-     * @param dir The intended direction of movement
-     * @param degreeOffset Spacing between checked directions (degrees)
-     * @param checksPerSide Number of extra directions checked on each side, if intended direction was unavailable
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
-
-        // First, try intended direction
-        if (robotController.canMove(dir)) {
-            robotController.move(dir);
-            return true;
-        }
-
-        // Now try a bunch of similar angles
-        boolean moved = false;
-        int currentCheck = 1;
-
-        while(currentCheck<=checksPerSide) {
-            // Try the offset of the left side
-            if(robotController.canMove(dir.rotateLeftDegrees(degreeOffset*currentCheck))) {
-                robotController.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
-                return true;
-            }
-            // Try the offset on the right side
-            if(robotController.canMove(dir.rotateRightDegrees(degreeOffset*currentCheck))) {
-                robotController.move(dir.rotateRightDegrees(degreeOffset*currentCheck));
-                return true;
-            }
-            // No move performed, try slightly further
-            currentCheck++;
-        }
-
-        // A move never happened, so return false.
-        System.out.println("Can't move" + dir);
-        return false;
-    }
 
     /**
      * A slightly more complicated example function, this returns true if the given bullet is on a collision
@@ -118,5 +70,21 @@ abstract class Robot {
         }
         return true;
     }
+
+    static void tryShakeTree() throws GameActionException {
+        if(!robotController.canShake()) {
+            return;
+        }
+        TreeInfo[] trees = robotController.senseNearbyTrees(1f);
+
+        for(TreeInfo tree : trees) {
+            int treeId = tree.getID();
+            if(tree.containedBullets > 0 && robotController.canShake(treeId)) {
+                robotController.shake(treeId);
+                return;
+            }
+        }
+    }
+
     abstract void onUpdate() throws GameActionException;
 }
