@@ -7,6 +7,7 @@ import java.util.*;
 
 public class BroadcastAntenna {
     private RobotController robotController;
+    private Integer empty;
 
     public static class Channels {
         private static int gardenerChannels = 50;
@@ -59,6 +60,7 @@ public class BroadcastAntenna {
 
     public BroadcastAntenna(RobotController _robotController) {
         robotController = _robotController;
+        empty = Integer.MAX_VALUE;
     }
 
     public void resetBroadcasts() throws GameActionException {
@@ -99,7 +101,7 @@ public class BroadcastAntenna {
         int firstChannelMod = Channels.helpFirstChannel % 3;
         for (int i = Channels.helpFirstChannel; i <= Channels.helpLastChannel; i++) {
             if (i % 3 == firstChannelMod) {
-                robotController.broadcastInt(i, 0);
+                robotController.broadcastInt(i, empty);
             } else {
                 robotController.broadcastFloat(i, 0);
             }
@@ -263,34 +265,28 @@ public class BroadcastAntenna {
         addRobot(Channels.tanksFirstChannel, Channels.tanksLastChannel, tankType);
     }
 
-    public List<Tuple3<RobotType, Float, Float>> getHelpList() throws GameActionException {
-        List<Tuple3<RobotType, Float, Float>> helpList = new ArrayList<>();
-        for (int i = Channels.helpFirstChannel; i <= Channels.helpLastChannel; i += 3) {
-            int robotType = robotController.readBroadcastInt(i);
-            if (robotType == 0) {
-                return helpList;
+    public Tuple3<RobotType, Float, Float> getCallForHelp() throws GameActionException {
+            int robotType = robotController.readBroadcastInt(Channels.helpFirstChannel);
+            if (robotType == empty) {
+                return null;
             }
-            Float xCoordinate = robotController.readBroadcastFloat(i + 1);
-            Float yCoordinate = robotController.readBroadcastFloat(i + 2);
-            helpList.add(new Tuple3<>(RobotType.values()[robotType], xCoordinate, yCoordinate));
-        }
-        return helpList;
+            Float xCoordinate = robotController.readBroadcastFloat(Channels.helpFirstChannel + 1);
+            Float yCoordinate = robotController.readBroadcastFloat(Channels.helpFirstChannel + 2);
+            return new Tuple3<>(RobotType.values()[robotType], xCoordinate, yCoordinate);
     }
 
     public void addCallForHelp(RobotType robotType, Float xCoordinate, Float yCoordinate) throws GameActionException {
-        for (int i = Channels.helpFirstChannel; i <= Channels.helpLastChannel; i += 3) {
-            if (robotController.readBroadcastInt(i) == 0) {
-                robotController.broadcastInt(i, robotType.ordinal());
-                robotController.broadcastFloat(i + 1, xCoordinate);
-                robotController.broadcastFloat(i + 2, yCoordinate);
-                return;
-            }
+        int previousRobotType = robotController.readBroadcastInt(Channels.helpFirstChannel);
+        if (previousRobotType == empty || getPriority(robotType) > getPriority(RobotType.values()[previousRobotType])) {
+            robotController.broadcastInt(Channels.helpFirstChannel, robotType.ordinal());
+            robotController.broadcastFloat(Channels.helpFirstChannel + 1, xCoordinate);
+            robotController.broadcastFloat(Channels.helpFirstChannel + 2, yCoordinate);
         }
     }
 
     public Tuple3<RobotType, Float, Float> getMark() throws GameActionException {
         int robotType = robotController.readBroadcastInt(Channels.markFirstChannel);
-        if (robotType == 99) {
+        if (robotType == empty) {
             return null;
         }
         Float xCoordinate = robotController.readBroadcastFloat(Channels.markFirstChannel + 1);
@@ -306,8 +302,38 @@ public class BroadcastAntenna {
     }
 
     public void resetMark() throws GameActionException {
-        robotController.broadcastInt(Channels.markFirstChannel, 99);
+        robotController.broadcastInt(Channels.markFirstChannel, empty);
         robotController.broadcastFloat(Channels.markFirstChannel + 1, 0f);
         robotController.broadcastFloat(Channels.markFirstChannel + 2, 0f);
+    }
+
+    //TODO move to utility component
+    //TODO make sure help priority is different from attack priority
+    private int getPriority(RobotType type) {
+        int priority;
+        switch(type) {
+            case ARCHON:
+                priority = 7;
+                break;
+            case GARDENER:
+                priority = 6;
+                break;
+            case LUMBERJACK:
+                priority = 5;
+                break;
+            case SCOUT:
+                priority = 4;
+                break;
+            case SOLDIER:
+                priority = 3;
+                break;
+            case TANK:
+                priority = 2;
+                break;
+            default: //tree
+                priority = 1;
+        }
+
+        return priority;
     }
 }

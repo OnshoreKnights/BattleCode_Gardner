@@ -26,6 +26,7 @@ public class Archon extends Robot {
     private int maxLumberjacks;
     private int maxTanks;
     private boolean isFirstTurn;
+    private boolean underAttack;
 
     public Archon() {
         maxGardeners = 15;
@@ -35,6 +36,7 @@ public class Archon extends Robot {
         maxLumberjacks = 2;
         maxTanks = 2;
         isFirstTurn = true;
+        underAttack = false;
 
         broadcastAntenna = new BroadcastAntenna(robotController);
         sensorArray = new SensorArray(robotController, broadcastAntenna);
@@ -62,6 +64,7 @@ public class Archon extends Robot {
                     setBuildNumbers();
                     tryHireGardener();
                 }
+                checkIfUnderAttack();
 
                 //printBytecodeUsage();
                 Clock.yield();
@@ -69,6 +72,16 @@ public class Archon extends Robot {
                 System.out.println("Archon Exception");
                 e.printStackTrace();
             }
+        }
+    }
+
+    //TODO move to sensor array?
+    private void checkIfUnderAttack() throws GameActionException {
+        if(sensorArray.surroundingEnemyRobots.size() > 0) {
+            underAttack = true;
+            broadcastAntenna.addCallForHelp(robotType, currentLocation.x, currentLocation.y);
+        } else {
+            underAttack = false;
         }
     }
 
@@ -103,7 +116,6 @@ public class Archon extends Robot {
             Direction direction = new Direction(i * 0.785398f);
             if (robotController.canHireGardener(direction)) {
                 robotController.hireGardener(direction);
-                System.out.println("Hiring New Gardener -- Settled(" + settledGardenerCount + ") -- Unsettled(" + unsettledGardenerCount + ")");
                 break;
             }
         }
@@ -127,7 +139,7 @@ public class Archon extends Robot {
 
     //TODO differentiate between Guards and Hunters
     private void setSoldierBuildNumber() throws GameActionException {
-        maxSoldiers = Math.min( (broadcastAntenna.getGardeners().size() * 4), (broadcastAntenna.getTanks().size() * 8) );
+        maxSoldiers = Math.min( (broadcastAntenna.getGardeners().size() * 4), (broadcastAntenna.getTanks().size() * 10) );
 
         List<Integer> soldiers = broadcastAntenna.getSoldiers();
         Integer soldiersToHire = Math.max(0, maxSoldiers - soldiers.size());
@@ -135,7 +147,6 @@ public class Archon extends Robot {
         broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire);
     }
 
-    //TODO differentiate between two types of lumberjacks (neutral and enemy trees)
     private void setLumberjackBuildNumber() throws GameActionException {
         List<Integer> lumberjacks = broadcastAntenna.getLumberjacks();
         Integer lumberjacksToHire = Math.max(0, maxLumberjacks - lumberjacks.size());

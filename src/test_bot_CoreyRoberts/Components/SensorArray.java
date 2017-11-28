@@ -14,11 +14,11 @@ public class SensorArray {
     private BodyInfo navigationMark;
     public MapLocation navigationMarkLocation;
 
-    private List<RobotInfo> surroundingFriendlyRobots;
-    private List<RobotInfo> surroundingEnemyRobots;
-    private List<TreeInfo> surroundingFriendlyTrees;
-    private List<TreeInfo> surroundingEnemyTrees;
-    private List<TreeInfo> surroundingNeutralTrees;
+    public List<RobotInfo> surroundingFriendlyRobots;
+    public List<RobotInfo> surroundingEnemyRobots;
+    public List<TreeInfo> surroundingFriendlyTrees;
+    public List<TreeInfo> surroundingEnemyTrees;
+    public List<TreeInfo> surroundingNeutralTrees;
 
     public SensorArray(RobotController _robotController, BroadcastAntenna _broadcastAntenna) {
         robotController = _robotController;
@@ -60,17 +60,25 @@ public class SensorArray {
         }
     }
 
-    //Target highest priority nearby robot
+    //Target help channel (switch to guards only)
+    //If there are no robots under attack, select priority nearby robot
     //If there are no nearby robots, pull the broadcast Mark
     //If there are no broadcast marks
     public void selectMarkEnemyRobot() throws GameActionException{
         navigationMark = null;
         navigationMarkLocation = null;
 
-        for (RobotInfo robotInfo : surroundingEnemyRobots) {
-            if (navigationMark == null || getPriority(robotInfo.type) > getPriority(((RobotInfo) navigationMark).type)) {
-                navigationMark = robotInfo;
-                navigationMarkLocation = robotInfo.location;
+        Tuple3<RobotType, Float, Float> helpRobot = broadcastAntenna.getCallForHelp();
+        if(helpRobot != null) {
+            navigationMarkLocation = new MapLocation(helpRobot._2(), helpRobot._3());
+        }
+
+        if(navigationMarkLocation == null) {
+            for (RobotInfo robotInfo : surroundingEnemyRobots) {
+                if (navigationMark == null || getPriority(robotInfo.type) > getPriority(((RobotInfo) navigationMark).type)) {
+                    navigationMark = robotInfo;
+                    navigationMarkLocation = robotInfo.location;
+                }
             }
         }
 
@@ -163,6 +171,7 @@ public class SensorArray {
     }
 
     //Converts robotType into priority number
+    //TODO move to utility component
     private int getPriority(RobotType type) {
         int priority;
         switch(type) {

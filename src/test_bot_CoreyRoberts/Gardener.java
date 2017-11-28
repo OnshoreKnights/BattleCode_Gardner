@@ -10,6 +10,8 @@ import test_bot_CoreyRoberts.Components.*;
 class Gardener extends Robot {
     private boolean settled;
     private int maxTreePlots;
+    private boolean underAttack; //TODO use  to prioritize building soldier first if under attack and have at least one tree.
+    private boolean hasBuiltScout;
 
     private BroadcastAntenna broadcastAntenna;
     private SensorArray sensorArray;
@@ -27,6 +29,8 @@ class Gardener extends Robot {
     public Gardener() {
         settled = false;
         maxTreePlots = 4;
+        underAttack = false;
+        hasBuiltScout = false;
 
         broadcastAntenna = new BroadcastAntenna(robotController);
         sensorArray = new SensorArray(robotController, broadcastAntenna);
@@ -36,11 +40,14 @@ class Gardener extends Robot {
         while (true) {
             try {
                 //TODO consolidate location into a single component instead of each one tracking it.
+                //TODO build soldier immediately if under attack and no soldiers exist.
                 //Probably sensor array or navigation
                 currentLocation = robotController.getLocation();
                 sensorArray.reset();
+                checkIfUnderAttack();
 
-                if(robotController.getMoveCount() == 0) {
+                //Build initial scout to start the match
+                if(!hasBuiltScout) {
                     tryBuildScout();
                 }
 
@@ -49,12 +56,12 @@ class Gardener extends Robot {
                     trySettle();
                 }
 
-                if(!settled) {
-                    broadcastAntenna.addGardener(GardenerType.Unsettled);
-                }else {
+                if(settled) {
                     broadcastAntenna.addGardener(GardenerType.Builder);
                     tryPlantingTrees();
                     tryBuildRobot();
+                }else {
+                    broadcastAntenna.addGardener(GardenerType.Unsettled);
                 }
                 tryWateringTrees();
                 tryShakeTree();
@@ -88,6 +95,15 @@ class Gardener extends Robot {
         }
 
         settled = true;
+    }
+
+    private void checkIfUnderAttack() throws GameActionException {
+        if(sensorArray.surroundingEnemyRobots.size() > 0) {
+            underAttack = true;
+            broadcastAntenna.addCallForHelp(robotType, currentLocation.x, currentLocation.y);
+        } else {
+            underAttack = false;
+        }
     }
 
     public void tryPlantingTrees() throws GameActionException {
@@ -138,11 +154,13 @@ class Gardener extends Robot {
         if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
             robotController.buildRobot(RobotType.SCOUT, direction);
             broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
+            hasBuiltScout = true;
         }
         direction = new Direction(5.236f);
         if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
             robotController.buildRobot(RobotType.SCOUT, direction);
             broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
+            hasBuiltScout = true;
         }
     }
 
