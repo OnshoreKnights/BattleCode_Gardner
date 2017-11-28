@@ -277,7 +277,6 @@ public class BroadcastAntenna {
         return helpList;
     }
 
-    //TODO make sure ordinal matches to value[x]
     public void addCallForHelp(RobotType robotType, Float xCoordinate, Float yCoordinate) throws GameActionException {
         for (int i = Channels.helpFirstChannel; i <= Channels.helpLastChannel; i += 3) {
             if (robotController.readBroadcastInt(i) == 0) {

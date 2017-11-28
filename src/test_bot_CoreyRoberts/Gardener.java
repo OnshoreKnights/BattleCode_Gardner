@@ -59,6 +59,7 @@ class Gardener extends Robot {
                 tryWateringTrees();
                 tryShakeTree();
 
+                //printBytecodeUsage();
                 Clock.yield();
             } catch (Exception e) {
                 System.out.println("A Gardener Exception");
@@ -122,6 +123,7 @@ class Gardener extends Robot {
     //One method to decide what to make next.  Another to make it.
     private void tryBuildRobot() throws GameActionException {
         tryBuildScout();
+        tryBuildTank();
         tryBuildSoldier();
     }
 
@@ -131,8 +133,13 @@ class Gardener extends Robot {
             return;
         }
 
-        //Build in the direction of the intentional opening
-        Direction direction = new Direction(5.236f);
+        //Build in the direction of the intentional opening. Try both slots 4 and 5 (0 based)
+        Direction direction = new Direction(4.18879f);
+        if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
+            robotController.buildRobot(RobotType.SCOUT, direction);
+            broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
+        }
+        direction = new Direction(5.236f);
         if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
             robotController.buildRobot(RobotType.SCOUT, direction);
             broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
@@ -148,10 +155,29 @@ class Gardener extends Robot {
         }
 
         //Build in the direction of the intentional opening
-        Direction direction = new Direction(5.236f);
+        Direction direction = new Direction(4.18879f);
         if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
             robotController.buildRobot(RobotType.SOLDIER, direction);
             broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire - 1);
+        }
+        direction = new Direction(5.236f);
+        if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
+            robotController.buildRobot(RobotType.SOLDIER, direction);
+            broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire - 1);
+        }
+    }
+
+    public void tryBuildTank() throws GameActionException {
+        int tanksToHire = broadcastAntenna.getTanksToHire();
+        if(tanksToHire == 0) {
+            return;
+        }
+
+        //Build in the direction of the intentional opening
+        Direction direction = new Direction(4.71239f);
+        if (robotController.canBuildRobot(RobotType.TANK, direction)) {
+            robotController.buildRobot(RobotType.TANK, direction);
+            broadcastAntenna.setHireCount(RobotType.TANK, tanksToHire - 1);
         }
     }
 }

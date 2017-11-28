@@ -38,6 +38,7 @@ public class Scout extends Robot {
                 sensorArray.updateMark(targetRobot);
                 weaponSystem.tryAttackTarget(sensorArray.targetTree());
 
+                //printBytecodeUsage();
                 Clock.yield();
             } catch (Exception e) {
                 System.out.println("A Scout Exception");

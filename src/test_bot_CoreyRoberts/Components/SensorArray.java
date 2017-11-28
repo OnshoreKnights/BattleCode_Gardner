@@ -60,7 +60,6 @@ public class SensorArray {
         }
     }
 
-    //TODO BUG - robots form a "conga line" after resolving mark issue...
     //Target highest priority nearby robot
     //If there are no nearby robots, pull the broadcast Mark
     //If there are no broadcast marks

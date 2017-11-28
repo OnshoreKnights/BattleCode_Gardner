@@ -63,6 +63,7 @@ public class Archon extends Robot {
                     tryHireGardener();
                 }
 
+                //printBytecodeUsage();
                 Clock.yield();
             } catch (Exception e) {
                 System.out.println("Archon Exception");
@@ -126,6 +127,8 @@ public class Archon extends Robot {
 
     //TODO differentiate between Guards and Hunters
     private void setSoldierBuildNumber() throws GameActionException {
+        maxSoldiers = Math.min( (broadcastAntenna.getGardeners().size() * 4), (broadcastAntenna.getTanks().size() * 8) );
+
         List<Integer> soldiers = broadcastAntenna.getSoldiers();
         Integer soldiersToHire = Math.max(0, maxSoldiers - soldiers.size());
 

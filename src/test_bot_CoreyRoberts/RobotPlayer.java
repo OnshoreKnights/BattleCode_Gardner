@@ -32,6 +32,9 @@ public strictfp class RobotPlayer {
                 case SCOUT:
                     robot = new Scout();
                     break;
+                case TANK:
+                    robot = new Tank();
+                    break;
             }
         } catch (Exception e) {
             System.out.println("Exception in robot initialization: " + robotController.getType());

@@ -35,6 +35,7 @@ public abstract class Robot {
      * @param bullet The bullet in question
      * @return True if the line of the bullet's path intersects with this robot's current position.
      */
+    //TODO move to navigationSystem
     static boolean willCollideWithMe(BulletInfo bullet) {
         MapLocation myLocation = robotController.getLocation();
 
@@ -61,6 +62,7 @@ public abstract class Robot {
         return (perpendicularDist <= robotController.getType().bodyRadius);
     }
 
+    //TODO move to navigation system
     public static boolean isAwayFromMapEdge(MapLocation location, float distance) throws GameActionException {
         for(int i = 0; i < 4; i++) {
             MapLocation testLocation = location.add(1.5708f * i, distance);
@@ -71,6 +73,7 @@ public abstract class Robot {
         return true;
     }
 
+    //Utility system?
     static void tryShakeTree() throws GameActionException {
         if(!robotController.canShake()) {
             return;
@@ -84,6 +87,12 @@ public abstract class Robot {
                 return;
             }
         }
+    }
+
+    public void printBytecodeUsage() {
+        int bytecodeUsed = Clock.getBytecodeNum();
+        int bytecodeLeft = Clock.getBytecodesLeft();
+        System.out.println("Bytecode Check    (" + bytecodeUsed + ") used    (" + bytecodeLeft + ") remaining");
     }
 
     abstract void onUpdate() throws GameActionException;
