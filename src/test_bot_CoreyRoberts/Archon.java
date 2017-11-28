@@ -45,7 +45,6 @@ public class Archon extends Robot {
     public void onUpdate() {
         while (true) {
             try {
-                //TODO Make sure this actually triggers on turn 1, or if it needs to be set higher.
                 int roundNumber = robotController.getRoundNum();
                 if(roundNumber == 1) {
                     setInitialArchonLocations();

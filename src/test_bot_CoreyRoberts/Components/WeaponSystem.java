@@ -47,10 +47,10 @@ public class WeaponSystem {
         }
 
         if(targetRadius == 2 && distance <= triadMaxDistanceLargeTarget) { //Archon and tank
-            robotController.firePentadShot(direction);
+            robotController.fireTriadShot(direction);
         }
         if(targetRadius == 1 && distance <= triadMaxDistanceSmallTarget) { //All other targets
-            robotController.firePentadShot(direction);
+            robotController.fireTriadShot(direction);
         }
     }
 

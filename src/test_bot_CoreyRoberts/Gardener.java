@@ -3,7 +3,6 @@ package test_bot_CoreyRoberts;
 import battlecode.common.*;
 import test_bot_CoreyRoberts.Components.*;
 
-
 //TODO change type of gardener based on how many I have and how many of each I need.
 // Farmers = 6 trees surrounding.  Unless I change to a more mobile format.  Place in back, tightly clustered
 // Builder = 4 trees and two open slots for soldiers, tanks, etc.  Middle placement, leaving room for tanks to move.
@@ -40,6 +39,10 @@ class Gardener extends Robot {
                 //Probably sensor array or navigation
                 currentLocation = robotController.getLocation();
                 sensorArray.reset();
+
+                if(robotController.getMoveCount() == 0) {
+                    tryBuildScout();
+                }
 
                 if (!settled) {
                     navigationSystem.tryMove(randomDirection());
@@ -86,14 +89,6 @@ class Gardener extends Robot {
         settled = true;
     }
 
-    //TODO create priority build system.
-    //Move outside of "if settled" for first scout creation, then only build more after there are enough trees
-    //to ensure there are enough bullets to continue
-    private void tryBuildRobot() throws GameActionException {
-        tryBuildScout();
-        tryBuildSoldier();
-    }
-
     public void tryPlantingTrees() throws GameActionException {
         for(int i = 0; i < maxTreePlots; i++) {
             Direction direction = new Direction(i * 1.0472f);
@@ -120,6 +115,14 @@ class Gardener extends Robot {
         if (minHealthTree != null) {
             robotController.water(minHealthTree.ID);
         }
+    }
+
+
+    //TODO create priority build system.
+    //One method to decide what to make next.  Another to make it.
+    private void tryBuildRobot() throws GameActionException {
+        tryBuildScout();
+        tryBuildSoldier();
     }
 
     private void tryBuildScout() throws GameActionException {

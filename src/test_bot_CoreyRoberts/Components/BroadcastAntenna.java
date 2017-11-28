@@ -7,11 +7,6 @@ import java.util.*;
 
 public class BroadcastAntenna {
     private RobotController robotController;
-    //TODO CHANNELS
-    //Each even turn, Archon resets all broadcast values.  Info and build counts.
-    //Each even turn, each robot transmits all of its info to be stored (after reset)
-    //Each odd turn, Archon reads all broadcast values and sets build numbers
-    //Each odd turn, gardeners and archons create more robots after reading values.
 
     public static class Channels {
         private static int gardenerChannels = 50;
