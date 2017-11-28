@@ -1,16 +1,17 @@
-package test_bot_CoreyRoberts.Components
-        ;
+package test_bot_CoreyRoberts.Components;
 import battlecode.common.*;
 import java.util.*;
+import scala.Tuple3;
 
 public class SensorArray {
     private RobotController robotController;
+    private BroadcastAntenna broadcastAntenna;
     private MapLocation currentLocation;
 
     private Team myTeam;
     private Team enemyTeam;
 
-    public BodyInfo navigationMark;
+    private BodyInfo navigationMark;
     public MapLocation navigationMarkLocation;
 
     private List<RobotInfo> surroundingFriendlyRobots;
@@ -19,16 +20,15 @@ public class SensorArray {
     private List<TreeInfo> surroundingEnemyTrees;
     private List<TreeInfo> surroundingNeutralTrees;
 
-    public SensorArray(RobotController _robotController) {
+    public SensorArray(RobotController _robotController, BroadcastAntenna _broadcastAntenna) {
         robotController = _robotController;
+        broadcastAntenna = _broadcastAntenna;
         myTeam = robotController.getTeam();
         enemyTeam = myTeam.opponent();
     }
 
     public void reset() {
         currentLocation = robotController.getLocation();
-        navigationMark = null;
-        navigationMarkLocation = null;
 
         surroundingFriendlyRobots = Arrays.asList(
                 Optional.ofNullable(robotController.senseNearbyRobots(-1, myTeam)).orElse(new RobotInfo[0]));
@@ -40,16 +40,6 @@ public class SensorArray {
                 Optional.ofNullable(robotController.senseNearbyTrees(-1, enemyTeam)).orElse(new TreeInfo[0]));
         surroundingNeutralTrees = Arrays.asList(
                 Optional.ofNullable(robotController.senseNearbyTrees(-1, Team.NEUTRAL)).orElse(new TreeInfo[0]));
-    }
-
-    public List<RobotInfo> findNearbyRobotsByType(RobotType type) {
-        List<RobotInfo> robotsFound = new ArrayList<>();
-        for(RobotInfo robot: surroundingEnemyRobots) {
-            if(robot.type == type) {
-                robotsFound.add(robot);
-            }
-        }
-        return robotsFound;
     }
 
     //TODO Search known tree locations if there are none nearby
@@ -70,52 +60,45 @@ public class SensorArray {
         }
     }
 
-    //TODO save target to broadcast channels to be updated by scouts and other bots.
+    //TODO BUG - robots form a "conga line" after resolving mark issue...
+    //Target highest priority nearby robot
+    //If there are no nearby robots, pull the broadcast Mark
+    //If there are no broadcast marks
     public void selectMarkEnemyRobot() throws GameActionException{
         navigationMark = null;
         navigationMarkLocation = null;
-        float currentTargetDistance = 0;
 
         for (RobotInfo robotInfo : surroundingEnemyRobots) {
-            float robotDistance = currentLocation.distanceTo(robotInfo.location);
-            if (navigationMark == null ||
-                    getPriority(robotInfo.type) > getPriority(((RobotInfo) navigationMark).type) ||
-                    (robotInfo.type == ((RobotInfo) navigationMark).type && robotDistance < currentTargetDistance)) {
+            if (navigationMark == null || getPriority(robotInfo.type) > getPriority(((RobotInfo) navigationMark).type)) {
                 navigationMark = robotInfo;
                 navigationMarkLocation = robotInfo.location;
-                currentTargetDistance = robotDistance;
             }
         }
 
-        if(navigationMark == null){
-            //TODO remove archon broadcasts whenever they are destroyed (find closest broadcast to their destroyed location)
-            if(robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation1x) != 0) {
-                navigationMarkLocation = new MapLocation(
-                        robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation1x),
-                        robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation1y));
+        if(navigationMarkLocation == null) {
+            Tuple3<RobotType, Float, Float> mark = broadcastAntenna.getMark();
+            if(mark != null) {
+                navigationMarkLocation = new MapLocation(mark._2(), mark._3());
             }
-            else if(robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation2x) != 0) {
-                navigationMarkLocation = new MapLocation(
-                        robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation2x),
-                        robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation2y));
-            }
-            else if(robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation3x) != 0) {
-                navigationMarkLocation = new MapLocation(
-                        robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation3x),
-                        robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation3y));
+        }
+
+        if(navigationMarkLocation == null){
+            List<MapLocation> archons = broadcastAntenna.getArchonLocations();
+            if(archons.size() > 0) {
+                navigationMarkLocation = archons.get(0);
             }
         }
     }
 
     public RobotInfo targetRobot() {
         RobotInfo currentTarget = null;
-        float currentTargetDistance = 0;
+        int currentTargetPriority = 0;
 
         for (RobotInfo robot : surroundingEnemyRobots) {
-            float robotDistance = currentLocation.distanceTo(robot.location);
-            if (robotDistance < currentTargetDistance) {
+            int robotPriority = getPriority(robot.type);
+            if (currentTarget == null || robotPriority > currentTargetPriority) {
                 currentTarget = robot;
-                currentTargetDistance = robotDistance;
+                currentTargetPriority = robotPriority;
             }
         }
         return currentTarget;
@@ -127,7 +110,7 @@ public class SensorArray {
 
         for (TreeInfo tree : surroundingEnemyTrees) {
             float treeDistance = currentLocation.distanceTo(tree.location);
-            if(treeDistance < currentTargetDistance) {
+            if(currentTarget == null || treeDistance < currentTargetDistance) {
                 currentTarget = tree;
                 currentTargetDistance = treeDistance;
             }
@@ -135,41 +118,52 @@ public class SensorArray {
         return currentTarget;
     }
 
-    public void checkArchonLocation() throws GameActionException {
-        //TODO combine robot checks to save action points.
-        //Do not attempt to mark off archons if one is nearby.  Just attack it instead.
+    //If within range of a known archon location, scan for archons
+    //If an archon is not seen but should be, remove it from the list. It is probably dead.
+    public void confirmArchonLocations() throws GameActionException {
         for(RobotInfo robot : surroundingEnemyRobots) {
             if(robot.type == RobotType.ARCHON) {
                 return;
             }
         }
 
-        MapLocation archon1 = new MapLocation(
-                robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation1x),
-                robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation1y));
-        MapLocation archon2 = new MapLocation(
-                robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation2x),
-                robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation2y));
-        MapLocation archon3 = new MapLocation(
-                robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation3x),
-                robotController.readBroadcastFloat(BroadcastAntenna.enemyArchonLocation3y));
-
-
-        if(archon1.x != 0f && robotController.canSenseLocation(archon1)){
-            robotController.broadcastFloat(BroadcastAntenna.enemyArchonLocation1x, 0);
-            robotController.broadcastFloat(BroadcastAntenna.enemyArchonLocation1y, 0);
+        List<MapLocation> archons = broadcastAntenna.getArchonLocations();
+        List<MapLocation> currentArchons = new ArrayList<>();
+        for(MapLocation archon : archons) {
+            if(!robotController.canSenseLocation(archon)) {
+                currentArchons.add(archon);
+            }
         }
-        if(archon2.x != 0f && robotController.canSenseLocation(archon2)){
-            robotController.broadcastFloat(BroadcastAntenna.enemyArchonLocation2x, 0);
-            robotController.broadcastFloat(BroadcastAntenna.enemyArchonLocation2y, 0);
-        }
-        if(archon3.x != 0f && robotController.canSenseLocation(archon3)){
-            robotController.broadcastFloat(BroadcastAntenna.enemyArchonLocation3x, 0);
-            robotController.broadcastFloat(BroadcastAntenna.enemyArchonLocation3y, 0);
+        if(archons.size() != currentArchons.size()) {
+            broadcastAntenna.setArchonLocations(currentArchons);
         }
     }
 
-    //Converts robotType into priorityType
+    public void confirmMark() throws GameActionException {
+        Tuple3<RobotType, Float, Float> mark = broadcastAntenna.getMark();
+
+        if(mark != null
+                && robotController.canSenseLocation(new MapLocation(mark._2(), mark._3()))
+                && surroundingEnemyRobots.size() == 0) {
+            broadcastAntenna.resetMark();
+        }
+    }
+
+    public void updateMark(RobotInfo robotInfo) throws GameActionException {
+        if (robotInfo == null) {
+            return;
+        }
+
+        Tuple3<RobotType, Float, Float> mark = broadcastAntenna.getMark();
+        if(mark == null || getPriority(robotInfo.type) > getPriority(mark._1())) {
+            broadcastAntenna.addMark(
+                    robotInfo.type,
+                    robotInfo.location.x,
+                    robotInfo.location.y);
+        }
+    }
+
+    //Converts robotType into priority number
     private int getPriority(RobotType type) {
         int priority;
         switch(type) {

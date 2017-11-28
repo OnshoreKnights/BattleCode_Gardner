@@ -6,29 +6,38 @@ import test_bot_CoreyRoberts.Components.*;
 
 //TODO change type of gardener based on how many I have and how many of each I need.
 // Farmers = 6 trees surrounding.  Unless I change to a more mobile format.  Place in back, tightly clustered
-// Hybrids = 4 trees and two open slots for soldiers, tanks, etc.  Middle placement, leaving room for tanks to move.
-// Factories = aggressively placed gardeners that just spawn other troops.  Place behind trees, or plant one tree in front of them.
-//TODO build one scout IMMEDIATELY to get a head start on collecting bullets. Then build trees.  Then more robots.
+// Builder = 4 trees and two open slots for soldiers, tanks, etc.  Middle placement, leaving room for tanks to move.
+// TODO build one scout IMMEDIATELY to get a head start on collecting bullets. Then build trees.  Then more robots.
 class Gardener extends Robot {
     private boolean settled;
-    private int maxTrees;
+    private int maxTreePlots;
 
     private BroadcastAntenna broadcastAntenna;
     private SensorArray sensorArray;
     private NavigationSystem  navigationSystem;
     private MapLocation currentLocation;
 
+    //TODO this may need to be moved to its own class for use in archon
+    //Add new Subtypes package maybe
+    public static class GardenerType {
+        private static int Unsettled = 1;
+        private static int Farmer = 2;
+        private static int Builder = 3;
+    }
+
     public Gardener() {
         settled = false;
-        maxTrees = 4;
+        maxTreePlots = 4;
 
         broadcastAntenna = new BroadcastAntenna(robotController);
-        sensorArray = new SensorArray(robotController);
-        navigationSystem = new NavigationSystem(robotController); //Add SensorArray?
+        sensorArray = new SensorArray(robotController, broadcastAntenna);
+        navigationSystem = new NavigationSystem(robotController);
     }
     public void onUpdate() {
         while (true) {
             try {
+                //TODO consolidate location into a single component instead of each one tracking it.
+                //Probably sensor array or navigation
                 currentLocation = robotController.getLocation();
                 sensorArray.reset();
 
@@ -38,12 +47,11 @@ class Gardener extends Robot {
                 }
 
                 if(!settled) {
-                    broadcastAntenna.incrementUnsettledGardeners();
+                    broadcastAntenna.addGardener(GardenerType.Unsettled);
                 }else {
-                    broadcastAntenna.incrementSettledGardeners();
+                    broadcastAntenna.addGardener(GardenerType.Builder);
                     tryPlantingTrees();
-                    tryBuildScout();
-                    tryBuildSoldier();
+                    tryBuildRobot();
                 }
                 tryWateringTrees();
                 tryShakeTree();
@@ -58,7 +66,7 @@ class Gardener extends Robot {
 
     public void trySettle() throws GameActionException {
         //Leave enough room from the edge of the map to build trees all around it
-        if(!isAwayFromMapEdge(currentLocation,3)) {
+        if(!isAwayFromMapEdge(currentLocation,3f)) {
             return;
         }
 
@@ -67,6 +75,7 @@ class Gardener extends Robot {
             return;
         }
 
+        //TODO move to sensor
         //Ignore other bots.  Don't build too close to other gardeners or the Archon
         for (RobotInfo robot: robotController.senseNearbyRobots(5, myTeam)) {
             if(robot.type == RobotType.GARDENER || robot.type == RobotType.ARCHON) {
@@ -75,11 +84,18 @@ class Gardener extends Robot {
         }
 
         settled = true;
-        System.out.println("Gardener settled");
+    }
+
+    //TODO create priority build system.
+    //Move outside of "if settled" for first scout creation, then only build more after there are enough trees
+    //to ensure there are enough bullets to continue
+    private void tryBuildRobot() throws GameActionException {
+        tryBuildScout();
+        tryBuildSoldier();
     }
 
     public void tryPlantingTrees() throws GameActionException {
-        for(int i = 0; i < maxTrees; i++) {
+        for(int i = 0; i < maxTreePlots; i++) {
             Direction direction = new Direction(i * 1.0472f);
 
             if (robotController.canPlantTree(direction)) {
@@ -90,6 +106,7 @@ class Gardener extends Robot {
     }
 
     public void tryWateringTrees() throws GameActionException {
+        //TODO move to sensor
         TreeInfo[] trees = robotController.senseNearbyTrees(2, myTeam);
 
         TreeInfo minHealthTree = null;
@@ -106,7 +123,7 @@ class Gardener extends Robot {
     }
 
     private void tryBuildScout() throws GameActionException {
-        int scoutsToHire = robotController.readBroadcastInt(BroadcastAntenna.scoutsToHire);
+        int scoutsToHire = broadcastAntenna.getScoutsToHire();
         if(scoutsToHire <= 0) {
             return;
         }
@@ -115,14 +132,14 @@ class Gardener extends Robot {
         Direction direction = new Direction(5.236f);
         if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
             robotController.buildRobot(RobotType.SCOUT, direction);
-            robotController.broadcastInt(BroadcastAntenna.scoutsToHire, scoutsToHire - 1);
+            broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
         }
     }
 
     //TODO split between different soldier types
     // Guards and Hunters
     public void tryBuildSoldier() throws GameActionException {
-        int soldiersToHire = robotController.readBroadcastInt(BroadcastAntenna.soldiersToHire);
+        int soldiersToHire = broadcastAntenna.getSoldiersToHire();
         if(soldiersToHire == 0) {
             return;
         }
@@ -131,8 +148,7 @@ class Gardener extends Robot {
         Direction direction = new Direction(5.236f);
         if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
             robotController.buildRobot(RobotType.SOLDIER, direction);
-            robotController.broadcastInt(BroadcastAntenna.soldiersToHire, soldiersToHire - 1); //TODO broadcastAntenna
-            System.out.println("Soldier created");
+            broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire - 1);
         }
     }
 }

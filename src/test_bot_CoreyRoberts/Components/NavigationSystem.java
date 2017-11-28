@@ -27,6 +27,7 @@ public class NavigationSystem {
     }
 
     //TODO default to something else instead of random
+    //This will probably be built into the various robot subtypes
     public boolean tryMove(MapLocation location) throws GameActionException {
         currentLocation = robotController.getLocation();
         if(location == null) {

@@ -11,7 +11,7 @@ public class Scout extends Robot {
 
     public Scout() {
         broadcastAntenna = new BroadcastAntenna(robotController);
-        sensorArray = new SensorArray(robotController);
+        sensorArray = new SensorArray(robotController, broadcastAntenna);
         navigationSystem = new NavigationSystem(robotController);
         weaponSystem = new WeaponSystem(robotController);
     }
@@ -20,17 +20,22 @@ public class Scout extends Robot {
         while (true) {
             try {
                 sensorArray.reset();
-                broadcastAntenna.incrementScouts();
+                broadcastAntenna.addScout(1);
 
-                sensorArray.checkArchonLocation();
+                sensorArray.confirmArchonLocations();
+                sensorArray.confirmMark();
+
                 sensorArray.selectMarkBulletTree();
                 if(sensorArray.navigationMarkLocation == null) {
                     sensorArray.selectMarkEnemyRobot();
                 }
+
                 navigationSystem.tryMove(sensorArray.navigationMarkLocation);
 
                 tryShakeTree();
-                weaponSystem.tryAttackTarget(sensorArray.targetRobot());
+                RobotInfo targetRobot = sensorArray.targetRobot();
+                weaponSystem.tryAttackTarget(targetRobot);
+                sensorArray.updateMark(targetRobot);
                 weaponSystem.tryAttackTarget(sensorArray.targetTree());
 
                 Clock.yield();

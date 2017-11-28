@@ -9,9 +9,14 @@ public class Soldier extends Robot {
     private NavigationSystem  navigationSystem;
     private WeaponSystem weaponSystem;
 
+    private static class SoldierType {
+        private static int Guard = 1;
+        private static int Hunter = 2;
+    }
+
     public Soldier() {
         broadcastAntenna = new BroadcastAntenna(robotController);
-        sensorArray = new SensorArray(robotController);
+        sensorArray = new SensorArray(robotController, broadcastAntenna);
         navigationSystem = new NavigationSystem(robotController);
         weaponSystem = new WeaponSystem(robotController);
     }
@@ -20,15 +25,19 @@ public class Soldier extends Robot {
         while (true) {
             try {
                 sensorArray.reset();
-                broadcastAntenna.incrementSoldiers();
+                broadcastAntenna.addSoldier(SoldierType.Hunter);
 
-                sensorArray.checkArchonLocation(); //TODO stop marking archons, and change to just update list of known enemy targets
+                sensorArray.confirmArchonLocations();
+                sensorArray.confirmMark();
+
                 sensorArray.selectMarkEnemyRobot();
                 navigationSystem.tryMove(sensorArray.navigationMarkLocation);
 
-                weaponSystem.tryAttackTarget(sensorArray.targetRobot());
+                tryShakeTree();
+                RobotInfo targetRobot = sensorArray.targetRobot();
+                weaponSystem.tryAttackTarget(targetRobot);
+                sensorArray.updateMark(targetRobot);
                 weaponSystem.tryAttackTarget(sensorArray.targetTree());
-                tryShakeTree(); //Should this stay on robot?  Utility system?
 
                 Clock.yield();
             } catch (Exception e) {
