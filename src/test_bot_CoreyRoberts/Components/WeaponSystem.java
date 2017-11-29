@@ -10,6 +10,16 @@ public class WeaponSystem {
         robotType = robotController.getType();
     }
 
+    public void tryChop(TreeInfo treeInfo) throws GameActionException {
+        if(treeInfo == null) {
+            return;
+        }
+        int treeId = treeInfo.getID();
+        if(robotController.canChop(treeId)) {
+            robotController.chop(treeId);
+        }
+    }
+
     public void tryAttackTarget(BodyInfo target) throws GameActionException{
         if(target == null) {
             return;
@@ -29,7 +39,17 @@ public class WeaponSystem {
             tryPentadAttack(distance, direction, targetRadius);
             tryTriadAttack(distance,direction, targetRadius);
         }
-        trySingleAttack(direction);
+        if(robotType == RobotType.SOLDIER || robotType == RobotType.TANK || robotType == robotType.SCOUT) {
+            trySingleAttack(direction);
+        }
+        if(robotType == RobotType.LUMBERJACK) {
+            //TODO move to sensor?
+            int enemyRobotCount = robotController.senseNearbyRobots(1, robotController.getTeam().opponent()).length;
+            int friendlyRobotCount = robotController.senseNearbyRobots(1, robotController.getTeam()).length;
+            if(robotController.canStrike() && enemyRobotCount > friendlyRobotCount) {
+                robotController.strike();
+            }
+        }
     }
 
     private void trySingleAttack(Direction direction) throws GameActionException {

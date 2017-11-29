@@ -6,12 +6,11 @@ import scala.Tuple3;
 public class SensorArray {
     private RobotController robotController;
     private BroadcastAntenna broadcastAntenna;
-    private MapLocation currentLocation;
+    public MapLocation currentLocation;
 
     private Team myTeam;
     private Team enemyTeam;
 
-    private BodyInfo navigationMark;
     public MapLocation navigationMarkLocation;
 
     public List<RobotInfo> surroundingFriendlyRobots;
@@ -42,59 +41,68 @@ public class SensorArray {
                 Optional.ofNullable(robotController.senseNearbyTrees(-1, Team.NEUTRAL)).orElse(new TreeInfo[0]));
     }
 
-    //TODO Search known tree locations if there are none nearby
-    public void selectMarkBulletTree() {
-        navigationMark = null;
+    public boolean selectMarkBulletTree() {
         navigationMarkLocation = null;
         float targetDistance = 0;
 
         for(TreeInfo tree: surroundingNeutralTrees) {
             if(tree.containedBullets > 0) {
                 float distanceToTree = currentLocation.distanceTo(tree.location);
-                if (navigationMark == null || distanceToTree < targetDistance) {
-                    navigationMark = tree;
+                if (navigationMarkLocation == null || distanceToTree < targetDistance) {
                     navigationMarkLocation = tree.location;
                     targetDistance = distanceToTree;
                 }
             }
         }
+
+        return navigationMarkLocation != null;
     }
 
-    //Target help channel (switch to guards only)
-    //If there are no robots under attack, select priority nearby robot
-    //If there are no nearby robots, pull the broadcast Mark
-    //If there are no broadcast marks
-    public void selectMarkEnemyRobot() throws GameActionException{
-        navigationMark = null;
+    public boolean selectMarkRobotTree() {
         navigationMarkLocation = null;
+        float targetDistance = 0;
 
-        Tuple3<RobotType, Float, Float> helpRobot = broadcastAntenna.getCallForHelp();
-        if(helpRobot != null) {
-            navigationMarkLocation = new MapLocation(helpRobot._2(), helpRobot._3());
-        }
-
-        if(navigationMarkLocation == null) {
-            for (RobotInfo robotInfo : surroundingEnemyRobots) {
-                if (navigationMark == null || getPriority(robotInfo.type) > getPriority(((RobotInfo) navigationMark).type)) {
-                    navigationMark = robotInfo;
-                    navigationMarkLocation = robotInfo.location;
+        for(TreeInfo tree: surroundingNeutralTrees) {
+            if(tree.containedRobot != null) {
+                float distanceToTree = currentLocation.distanceTo(tree.location);
+                if (navigationMarkLocation == null || distanceToTree < targetDistance) {
+                    navigationMarkLocation = tree.location;
+                    targetDistance = distanceToTree;
                 }
             }
         }
 
-        if(navigationMarkLocation == null) {
-            Tuple3<RobotType, Float, Float> mark = broadcastAntenna.getMark();
-            if(mark != null) {
-                navigationMarkLocation = new MapLocation(mark._2(), mark._3());
-            }
-        }
+        return navigationMarkLocation != null;
+    }
 
-        if(navigationMarkLocation == null){
-            List<MapLocation> archons = broadcastAntenna.getArchonLocations();
-            if(archons.size() > 0) {
-                navigationMarkLocation = archons.get(0);
-            }
+    public boolean selectMarkCallForHelp() throws GameActionException {
+        navigationMarkLocation = null;
+        Tuple3<RobotType, Float, Float> helpRobot = broadcastAntenna.getCallForHelp();
+        if(helpRobot != null) {
+            navigationMarkLocation = new MapLocation(helpRobot._2(), helpRobot._3());
+            return true;
         }
+        return false;
+    }
+
+    public boolean selectMarkFromBroadcast() throws GameActionException {
+        navigationMarkLocation = null;
+        Tuple3<RobotType, Float, Float> mark = broadcastAntenna.getMark();
+        if(mark != null) {
+            navigationMarkLocation = new MapLocation(mark._2(), mark._3());
+            return true;
+        }
+        return false;
+    }
+
+    public boolean selectMarkFromArchons() throws GameActionException {
+        navigationMarkLocation = null;
+        List<MapLocation> archons = broadcastAntenna.getArchonLocations();
+        if(archons.size() > 0) {
+            navigationMarkLocation = archons.get(0);
+            return true;
+        }
+        return false;
     }
 
     public RobotInfo targetRobot() {
@@ -111,7 +119,24 @@ public class SensorArray {
         return currentTarget;
     }
 
-    public TreeInfo targetTree() {
+    //Prioritize neutral trees by which robot is inside.
+    public TreeInfo targetTreeToChop() {
+        TreeInfo targetTree = null;
+        RobotType targetContainedRobot = null;
+
+        for(TreeInfo tree : surroundingNeutralTrees) {
+            if(robotController.canChop(tree.getID())
+                    && (targetTree == null
+                        || (targetContainedRobot == null && tree.containedRobot != null)
+                        || targetContainedRobot != null && tree.containedRobot != null && getPriority(tree.containedRobot) > getPriority(targetContainedRobot))) {
+                targetTree = tree;
+                targetContainedRobot = tree.containedRobot;
+            }
+        }
+        return targetTree;
+    }
+
+    public TreeInfo targetEnemyTree() {
         TreeInfo currentTarget = null;
         float currentTargetDistance = 0;
 

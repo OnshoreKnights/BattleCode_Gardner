@@ -7,8 +7,6 @@ import java.util.*;
 public abstract class Robot {
     static RobotController robotController = null;
     static RobotType robotType = null;
-    static MapLocation spawnLocation = null;
-    static MapLocation currentLocation = null;
     static Random random;
     static Team myTeam;
     static Team enemy;
@@ -17,8 +15,6 @@ public abstract class Robot {
         Robot.robotController = robotController;
         random = new Random();
         robotType = robotController.getType();
-        spawnLocation = robotController.getLocation();
-        currentLocation = spawnLocation;
         myTeam = robotController.getTeam();
         enemy = myTeam.opponent();
     }

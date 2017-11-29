@@ -30,14 +30,13 @@ public class Soldier extends Robot {
                 sensorArray.confirmArchonLocations();
                 sensorArray.confirmMark();
 
-                sensorArray.selectMarkEnemyRobot();
-                navigationSystem.tryMove(sensorArray.navigationMarkLocation);
+                navigationSystem.tryMove(selectMark());
 
                 tryShakeTree();
                 RobotInfo targetRobot = sensorArray.targetRobot();
                 weaponSystem.tryAttackTarget(targetRobot);
                 sensorArray.updateMark(targetRobot);
-                weaponSystem.tryAttackTarget(sensorArray.targetTree());
+                weaponSystem.tryAttackTarget(sensorArray.targetEnemyTree());
 
                 //printBytecodeUsage();
                 Clock.yield();
@@ -46,5 +45,14 @@ public class Soldier extends Robot {
                 e.printStackTrace();
             }
         }
+    }
+
+    private MapLocation selectMark() throws GameActionException {
+        if (!sensorArray.selectMarkCallForHelp()) {
+            if (!sensorArray.selectMarkFromBroadcast()) {
+                sensorArray.selectMarkFromArchons();
+            }
+        }
+        return sensorArray.navigationMarkLocation;
     }
 }

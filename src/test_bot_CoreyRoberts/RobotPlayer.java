@@ -35,6 +35,9 @@ public strictfp class RobotPlayer {
                 case TANK:
                     robot = new Tank();
                     break;
+                case LUMBERJACK:
+                    robot = new Lumberjack();
+                    break;
             }
         } catch (Exception e) {
             System.out.println("Exception in robot initialization: " + robotController.getType());

@@ -6,17 +6,16 @@ import test_bot_CoreyRoberts.Components.*;
 //TODO change type of gardener based on how many I have and how many of each I need.
 // Farmers = 6 trees surrounding.  Unless I change to a more mobile format.  Place in back, tightly clustered
 // Builder = 4 trees and two open slots for soldiers, tanks, etc.  Middle placement, leaving room for tanks to move.
-// TODO build one scout IMMEDIATELY to get a head start on collecting bullets. Then build trees.  Then more robots.
+// TODO create a build queue that all gardeners access
 class Gardener extends Robot {
     private boolean settled;
     private int maxTreePlots;
-    private boolean underAttack; //TODO use  to prioritize building soldier first if under attack and have at least one tree.
+    private boolean underAttack;
     private boolean hasBuiltScout;
 
     private BroadcastAntenna broadcastAntenna;
     private SensorArray sensorArray;
     private NavigationSystem  navigationSystem;
-    private MapLocation currentLocation;
 
     //TODO this may need to be moved to its own class for use in archon
     //Add new Subtypes package maybe
@@ -39,10 +38,10 @@ class Gardener extends Robot {
     public void onUpdate() {
         while (true) {
             try {
-                //TODO consolidate location into a single component instead of each one tracking it.
+                //TODO consolidate location into sensor array instead of each one tracking it.
                 //TODO build soldier immediately if under attack and no soldiers exist.
-                //Probably sensor array or navigation
-                currentLocation = robotController.getLocation();
+                //TODO build lumberjack immediately if in dense forest.
+                //TODO other wise build scout immediately then start on trees.
                 sensorArray.reset();
                 checkIfUnderAttack();
 
@@ -53,6 +52,7 @@ class Gardener extends Robot {
 
                 if (!settled) {
                     navigationSystem.tryMove(randomDirection());
+                    sensorArray.reset();
                     trySettle();
                 }
 
@@ -77,7 +77,7 @@ class Gardener extends Robot {
 
     public void trySettle() throws GameActionException {
         //Leave enough room from the edge of the map to build trees all around it
-        if(!isAwayFromMapEdge(currentLocation,3f)) {
+        if(!isAwayFromMapEdge(sensorArray.currentLocation,3f)) {
             return;
         }
 
@@ -100,7 +100,7 @@ class Gardener extends Robot {
     private void checkIfUnderAttack() throws GameActionException {
         if(sensorArray.surroundingEnemyRobots.size() > 0) {
             underAttack = true;
-            broadcastAntenna.addCallForHelp(robotType, currentLocation.x, currentLocation.y);
+            broadcastAntenna.addCallForHelp(robotType, sensorArray.currentLocation.x, sensorArray.currentLocation.y);
         } else {
             underAttack = false;
         }
@@ -139,6 +139,7 @@ class Gardener extends Robot {
     //One method to decide what to make next.  Another to make it.
     private void tryBuildRobot() throws GameActionException {
         tryBuildScout();
+        tryBuildLumberjack();
         tryBuildTank();
         tryBuildSoldier();
     }
@@ -160,6 +161,27 @@ class Gardener extends Robot {
         if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
             robotController.buildRobot(RobotType.SCOUT, direction);
             broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
+            hasBuiltScout = true;
+        }
+    }
+
+    private void tryBuildLumberjack() throws GameActionException {
+        int lumberjacksToHire = broadcastAntenna.getLumberjacksToHire();
+        if(lumberjacksToHire <= 0) {
+            return;
+        }
+
+        //Build in the direction of the intentional opening. Try both slots 4 and 5 (0 based)
+        Direction direction = new Direction(4.18879f);
+        if (robotController.canBuildRobot(RobotType.LUMBERJACK, direction)) {
+            robotController.buildRobot(RobotType.LUMBERJACK, direction);
+            broadcastAntenna.setHireCount(RobotType.LUMBERJACK, lumberjacksToHire - 1);
+            hasBuiltScout = true;
+        }
+        direction = new Direction(5.236f);
+        if (robotController.canBuildRobot(RobotType.LUMBERJACK, direction)) {
+            robotController.buildRobot(RobotType.LUMBERJACK, direction);
+            broadcastAntenna.setHireCount(RobotType.LUMBERJACK, lumberjacksToHire - 1);
             hasBuiltScout = true;
         }
     }

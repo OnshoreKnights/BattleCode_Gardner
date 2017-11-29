@@ -3,13 +3,13 @@ package test_bot_CoreyRoberts;
 import battlecode.common.*;
 import test_bot_CoreyRoberts.Components.*;
 
-public class Scout extends Robot {
+public class Lumberjack extends Robot {
     private BroadcastAntenna broadcastAntenna;
     private SensorArray sensorArray;
-    private NavigationSystem navigationSystem;
+    private NavigationSystem  navigationSystem;
     private WeaponSystem weaponSystem;
 
-    public Scout() {
+    public Lumberjack() {
         broadcastAntenna = new BroadcastAntenna(robotController);
         sensorArray = new SensorArray(robotController, broadcastAntenna);
         navigationSystem = new NavigationSystem(robotController);
@@ -20,35 +20,31 @@ public class Scout extends Robot {
         while (true) {
             try {
                 sensorArray.reset();
-                broadcastAntenna.addScout(1);
+                broadcastAntenna.addLumberjack(1);
 
                 sensorArray.confirmArchonLocations();
                 sensorArray.confirmMark();
 
                 navigationSystem.tryMove(selectMark());
 
-                tryShakeTree();
+                weaponSystem.tryChop(sensorArray.targetTreeToChop());
                 RobotInfo targetRobot = sensorArray.targetRobot();
                 weaponSystem.tryAttackTarget(targetRobot);
                 sensorArray.updateMark(targetRobot);
-                weaponSystem.tryAttackTarget(sensorArray.targetEnemyTree());
 
                 //printBytecodeUsage();
                 Clock.yield();
             } catch (Exception e) {
-                System.out.println("A Scout Exception");
+                System.out.println("A Tank Exception");
                 e.printStackTrace();
             }
         }
     }
 
-
     private MapLocation selectMark() throws GameActionException {
-        if(!sensorArray.selectMarkBulletTree()) {
-            if (!sensorArray.selectMarkCallForHelp()) {
-                if (!sensorArray.selectMarkFromBroadcast()) {
-                    sensorArray.selectMarkFromArchons();
-                }
+        if (!sensorArray.selectMarkRobotTree()) {
+            if (!sensorArray.selectMarkFromBroadcast()) {
+                sensorArray.selectMarkFromArchons();
             }
         }
         return sensorArray.navigationMarkLocation;

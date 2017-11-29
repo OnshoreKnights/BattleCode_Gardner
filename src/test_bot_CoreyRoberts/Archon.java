@@ -79,7 +79,7 @@ public class Archon extends Robot {
     private void checkIfUnderAttack() throws GameActionException {
         if(sensorArray.surroundingEnemyRobots.size() > 0) {
             underAttack = true;
-            broadcastAntenna.addCallForHelp(robotType, currentLocation.x, currentLocation.y);
+            broadcastAntenna.addCallForHelp(robotType, sensorArray.currentLocation.x, sensorArray.currentLocation.y);
         } else {
             underAttack = false;
         }
