@@ -13,7 +13,6 @@ import java.util.*;
 //TODO build unit maximums based on battlefield conditions instead of set maximums
 //ex: scanning for neutral trees for lumberjack count
 //ex2: more defending soldiers if there's lots of scouts
-//TODO gardeners call for help when attacked. defender soldiers respond to calls for help
 public class Archon extends Robot {
     private BroadcastAntenna broadcastAntenna;
     private SensorArray sensorArray;
@@ -76,7 +75,6 @@ public class Archon extends Robot {
         }
     }
 
-    //TODO move to sensor array?
     private void checkIfUnderAttack() throws GameActionException {
         if(sensorArray.surroundingEnemyRobots.size() > 0) {
             underAttack = true;
@@ -110,9 +108,6 @@ public class Archon extends Robot {
             return;
         }
 
-        //TODO find better way to determine empty space around with minimal checks.
-        //Try 8 cardinal directions for building a gardener.
-        //Hex based not required due to typically being in open ground
         for(int i = 0; i < 8; i++) {
             Direction direction = new Direction(i * 0.785398f);
             if (robotController.canHireGardener(direction)) {
