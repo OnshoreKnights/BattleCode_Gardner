@@ -1,79 +1,26 @@
-package botX;
+package test_bot_CoreyRoberts;
 
 import battlecode.common.*;
 
 import java.util.*;
 
-abstract class Robot {
+public abstract class Robot {
     static RobotController robotController = null;
     static RobotType robotType = null;
-    static MapLocation spawnLocation = null;
     static Random random;
     static Team myTeam;
     static Team enemy;
 
-    public static void init(RobotController rc) throws GameActionException {
-        Robot.robotController = rc;
+    public static void init(RobotController robotController) throws GameActionException {
+        Robot.robotController = robotController;
         random = new Random();
         robotType = robotController.getType();
-        spawnLocation = robotController.getLocation();
         myTeam = robotController.getTeam();
         enemy = myTeam.opponent();
     }
 
     protected static Direction randomDirection() {
         return new Direction(random.nextFloat() * 2 * (float)Math.PI);
-    }
-    /**
-     * Attempts to move in a given direction, while avoiding small obstacles directly in the path.
-     *
-     * @param dir The intended direction of movement
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir) throws GameActionException {
-        return tryMove(dir,20,3);
-    }
-
-    /**
-     * Attempts to move in a given direction, while avoiding small obstacles direction in the path.
-     *
-     * @param dir The intended direction of movement
-     * @param degreeOffset Spacing between checked directions (degrees)
-     * @param checksPerSide Number of extra directions checked on each side, if intended direction was unavailable
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
-
-        // First, try intended direction
-        if (robotController.canMove(dir)) {
-            robotController.move(dir);
-            return true;
-        }
-
-        // Now try a bunch of similar angles
-        boolean moved = false;
-        int currentCheck = 1;
-
-        while(currentCheck<=checksPerSide) {
-            // Try the offset of the left side
-            if(robotController.canMove(dir.rotateLeftDegrees(degreeOffset*currentCheck))) {
-                robotController.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
-                return true;
-            }
-            // Try the offset on the right side
-            if(robotController.canMove(dir.rotateRightDegrees(degreeOffset*currentCheck))) {
-                robotController.move(dir.rotateRightDegrees(degreeOffset*currentCheck));
-                return true;
-            }
-            // No move performed, try slightly further
-            currentCheck++;
-        }
-
-        // A move never happened, so return false.
-        System.out.println("Can't move" + dir);
-        return false;
     }
 
     /**
@@ -83,6 +30,7 @@ abstract class Robot {
      * @param bullet The bullet in question
      * @return True if the line of the bullet's path intersects with this robot's current position.
      */
+    //TODO move to navigationSystem
     static boolean willCollideWithMe(BulletInfo bullet) {
         MapLocation myLocation = robotController.getLocation();
 
@@ -108,5 +56,39 @@ abstract class Robot {
 
         return (perpendicularDist <= robotController.getType().bodyRadius);
     }
+
+    //TODO move to navigation system
+    public static boolean isAwayFromMapEdge(MapLocation location, float distance) throws GameActionException {
+        for(int i = 0; i < 4; i++) {
+            MapLocation testLocation = location.add(1.5708f * i, distance);
+            if(!robotController.onTheMap(testLocation)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //Utility system?
+    static void tryShakeTree() throws GameActionException {
+        if(!robotController.canShake()) {
+            return;
+        }
+        TreeInfo[] trees = robotController.senseNearbyTrees(1f);
+
+        for(TreeInfo tree : trees) {
+            int treeId = tree.getID();
+            if(tree.containedBullets > 0 && robotController.canShake(treeId)) {
+                robotController.shake(treeId);
+                return;
+            }
+        }
+    }
+
+    public void printBytecodeUsage() {
+        int bytecodeUsed = Clock.getBytecodeNum();
+        int bytecodeLeft = Clock.getBytecodesLeft();
+        System.out.println("Bytecode Check    (" + bytecodeUsed + ") used    (" + bytecodeLeft + ") remaining");
+    }
+
     abstract void onUpdate() throws GameActionException;
 }
