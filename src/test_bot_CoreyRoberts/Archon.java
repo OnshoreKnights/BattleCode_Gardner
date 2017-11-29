@@ -29,18 +29,19 @@ public class Archon extends Robot {
     private boolean underAttack;
 
     public Archon() {
+        broadcastAntenna = new BroadcastAntenna(robotController);
+        sensorArray = new SensorArray(robotController, broadcastAntenna);
+        navigationSystem = new NavigationSystem(robotController); //Add SensorArray?
+
         maxGardeners = 15;
-        maxUnsettledGardeners = 3;
+        maxUnsettledGardeners = 1;
         maxSoldiers = 15;
         maxScouts = 1;
         maxLumberjacks = 2;
         maxTanks = 2;
+
         isFirstTurn = true;
         underAttack = false;
-
-        broadcastAntenna = new BroadcastAntenna(robotController);
-        sensorArray = new SensorArray(robotController, broadcastAntenna);
-        navigationSystem = new NavigationSystem(robotController); //Add SensorArray?
     }
 
     @Override

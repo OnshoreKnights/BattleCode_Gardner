@@ -11,7 +11,7 @@ class Gardener extends Robot {
     private boolean settled;
     private int maxTreePlots;
     private boolean underAttack;
-    private boolean hasBuiltScout;
+    private boolean hasBuiltInitialRobot;
 
     private BroadcastAntenna broadcastAntenna;
     private SensorArray sensorArray;
@@ -29,25 +29,22 @@ class Gardener extends Robot {
         settled = false;
         maxTreePlots = 4;
         underAttack = false;
-        hasBuiltScout = false;
+        hasBuiltInitialRobot = false;
 
         broadcastAntenna = new BroadcastAntenna(robotController);
         sensorArray = new SensorArray(robotController, broadcastAntenna);
         navigationSystem = new NavigationSystem(robotController);
     }
+
     public void onUpdate() {
         while (true) {
             try {
-                //TODO consolidate location into sensor array instead of each one tracking it.
-                //TODO build soldier immediately if under attack and no soldiers exist.
-                //TODO build lumberjack immediately if in dense forest.
-                //TODO other wise build scout immediately then start on trees.
                 sensorArray.reset();
                 checkIfUnderAttack();
 
                 //Build initial scout to start the match
-                if(!hasBuiltScout) {
-                    tryBuildScout();
+                if(!hasBuiltInitialRobot) {
+                    buildInitialRobot();
                 }
 
                 if (!settled) {
@@ -134,90 +131,101 @@ class Gardener extends Robot {
         }
     }
 
+    private void buildInitialRobot() throws GameActionException {
+        //Under attack when spawned.  Create one soldier
+        if(sensorArray.surroundingEnemyRobots.size() > 0 && tryBuildSoldier()) {
+            hasBuiltInitialRobot = true;
+            return;
+        }
+
+        //Large number of neutral trees. Create one lumberjack
+        if(sensorArray.surroundingNeutralTrees.size() > 3 && tryBuildLumberjack()) {
+            hasBuiltInitialRobot = true;
+            return;
+        }
+
+        //Default to building one scout
+        if(tryBuildScout()) {
+            hasBuiltInitialRobot = true;
+            return;
+        }
+    }
 
     //TODO create priority build system.
     //One method to decide what to make next.  Another to make it.
     private void tryBuildRobot() throws GameActionException {
-        tryBuildScout();
-        tryBuildLumberjack();
-        tryBuildTank();
-        tryBuildSoldier();
-    }
-
-    private void tryBuildScout() throws GameActionException {
-        int scoutsToHire = broadcastAntenna.getScoutsToHire();
-        if(scoutsToHire <= 0) {
+        if(tryBuildScout() || tryBuildLumberjack() || tryBuildTank() || tryBuildSoldier()) {
             return;
         }
-
-        //Build in the direction of the intentional opening. Try both slots 4 and 5 (0 based)
-        Direction direction = new Direction(4.18879f);
-        if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
-            robotController.buildRobot(RobotType.SCOUT, direction);
-            broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
-            hasBuiltScout = true;
-        }
-        direction = new Direction(5.236f);
-        if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
-            robotController.buildRobot(RobotType.SCOUT, direction);
-            broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
-            hasBuiltScout = true;
-        }
     }
 
-    private void tryBuildLumberjack() throws GameActionException {
+    private boolean tryBuildScout() throws GameActionException {
+        int scoutsToHire = broadcastAntenna.getScoutsToHire();
+        if (scoutsToHire <= 0) {
+            return false;
+        }
+
+        for (int i = 0; i < 6; i++) {
+            Direction direction = new Direction(i * 1.0472f);
+            if (robotController.canBuildRobot(RobotType.SCOUT, direction)) {
+                robotController.buildRobot(RobotType.SCOUT, direction);
+                broadcastAntenna.setHireCount(RobotType.SCOUT, scoutsToHire - 1);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean tryBuildLumberjack() throws GameActionException {
         int lumberjacksToHire = broadcastAntenna.getLumberjacksToHire();
         if(lumberjacksToHire <= 0) {
-            return;
+            return false;
         }
 
-        //Build in the direction of the intentional opening. Try both slots 4 and 5 (0 based)
-        Direction direction = new Direction(4.18879f);
-        if (robotController.canBuildRobot(RobotType.LUMBERJACK, direction)) {
-            robotController.buildRobot(RobotType.LUMBERJACK, direction);
-            broadcastAntenna.setHireCount(RobotType.LUMBERJACK, lumberjacksToHire - 1);
-            hasBuiltScout = true;
+        for (int i = 0; i < 6; i++) {
+            Direction direction = new Direction(i * 1.0472f);
+            if (robotController.canBuildRobot(RobotType.LUMBERJACK, direction)) {
+                robotController.buildRobot(RobotType.LUMBERJACK, direction);
+                broadcastAntenna.setHireCount(RobotType.LUMBERJACK, lumberjacksToHire - 1);
+                return true;
+            }
         }
-        direction = new Direction(5.236f);
-        if (robotController.canBuildRobot(RobotType.LUMBERJACK, direction)) {
-            robotController.buildRobot(RobotType.LUMBERJACK, direction);
-            broadcastAntenna.setHireCount(RobotType.LUMBERJACK, lumberjacksToHire - 1);
-            hasBuiltScout = true;
-        }
+        return false;
     }
 
     //TODO split between different soldier types
     // Guards and Hunters
-    public void tryBuildSoldier() throws GameActionException {
+    public boolean tryBuildSoldier() throws GameActionException {
         int soldiersToHire = broadcastAntenna.getSoldiersToHire();
         if(soldiersToHire == 0) {
-            return;
+            return false;
         }
 
-        //Build in the direction of the intentional opening
-        Direction direction = new Direction(4.18879f);
-        if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
-            robotController.buildRobot(RobotType.SOLDIER, direction);
-            broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire - 1);
+        for (int i = 0; i < 6; i++) {
+            Direction direction = new Direction(i * 1.0472f);
+            if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
+                robotController.buildRobot(RobotType.SOLDIER, direction);
+                broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire - 1);
+                return true;
+            }
         }
-        direction = new Direction(5.236f);
-        if (robotController.canBuildRobot(RobotType.SOLDIER, direction)) {
-            robotController.buildRobot(RobotType.SOLDIER, direction);
-            broadcastAntenna.setHireCount(RobotType.SOLDIER, soldiersToHire - 1);
-        }
+        return false;
     }
 
-    public void tryBuildTank() throws GameActionException {
+    public boolean tryBuildTank() throws GameActionException {
         int tanksToHire = broadcastAntenna.getTanksToHire();
         if(tanksToHire == 0) {
-            return;
+            return false;
         }
 
-        //Build in the direction of the intentional opening
-        Direction direction = new Direction(4.71239f);
-        if (robotController.canBuildRobot(RobotType.TANK, direction)) {
-            robotController.buildRobot(RobotType.TANK, direction);
-            broadcastAntenna.setHireCount(RobotType.TANK, tanksToHire - 1);
+        for (int i = 0; i < 6; i++) {
+            Direction direction = new Direction((i * 1.0472f) + 0.5236f); //offset tank spawn by half a rotation.
+            if (robotController.canBuildRobot(RobotType.TANK, direction)) {
+                robotController.buildRobot(RobotType.TANK, direction);
+                broadcastAntenna.setHireCount(RobotType.TANK, tanksToHire - 1);
+                return true;
+            }
         }
+        return false;
     }
 }
